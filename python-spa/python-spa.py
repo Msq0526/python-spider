@@ -1,4 +1,5 @@
 import requests
+import pymongo
 import csv
 import time
 from datetime import datetime
@@ -12,6 +13,8 @@ class spa1:
         }
         self.all_movies = []
         self.filename = 'moves.csv'
+        self.client = pymongo.MongoClient(host='localhost', port=27017)
+        self.db = self.client['spa1']['movies']
         # self.headers = ['ID','NAME','ALIAS','COVER','CATEGORIES','PUBLISHED_AT','MINUTE','SCORE','REGIONS']
 
 
@@ -93,11 +96,29 @@ class spa1:
         except Exception as e:
             print(f"保存文件时错误，错误信息:{e}")
 
+    
+    def save_info_mongo(self):
+        if not self.all_movies:
+            print('无电影数据可以保存！！！')
+            return
+        else:
+            print('列表中存在数据，可以开始保存了！！！')
+        
+        try:
+            # 批量保存数据到MongoDB 
+            result = self.db.insert_many(self.all_movies)
+            print(f"已保存{len(result.inserted_ids)}条数据")
+
+            # 创建索引
+            self.db.create_index([('ID', pymongo.ASCENDING)])
+            print("创建索引成功")
+        except Exception as e:
+            print(f"保存数据到MongoDB时发生错误,错误信息:{e}")
 
         # 注:如果采用时间戳的命名方式保存数据,则会生成N个文件,如果采用固定csv文件名,则只会生成一个文件保存.
 
 if __name__ == "__main__":
     spider=spa1()
     spider.url_update()
-    spider.save_info_cvs()
-
+    # spider.save_info_cvs() # 将数据存入cvs表格
+    spider.save_info_mongo() # 将数据存入mongodb数据库
