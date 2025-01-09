@@ -11,18 +11,17 @@ class spa1:
             'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36 Edg/131.0.0.0'
         }
         self.all_movies = []
-
         self.filename = 'moves.csv'
         # self.headers = ['ID','NAME','ALIAS','COVER','CATEGORIES','PUBLISHED_AT','MINUTE','SCORE','REGIONS']
+
 
     # 定义翻页函数url_update
     def url_update(self):
         for page in range(0,100):
             url = self.url.format(page)
-            time.sleep(3)
             print(f"现在正在获取此：{url}")
             try:
-                json_info = requests.get(url,headers=self.headers).json()
+                json_info = requests.get(url, headers=self.headers, timeout=5).json()
                 # print(json_info)
                 # 判断页面是否为空
                 if not json_info['results']:
@@ -31,11 +30,23 @@ class spa1:
                 self.moves_data(json_info['results'])
             except Exception as e:
                 print(f"请求失败:{url}, 错误信息:{e}")
-                continue
+                rum = 3
+                while rum > 0:
+                    try:
+                        json_info = requests.get(url, headers=self.headers, timeout=5).json()
+                        self.moves_data(json_info['results'])
+                        break
+                    except:
+                        rum -= 1
+                        continue
 
 
     # 定义对获取的数据进行处理函数moves_data
     def moves_data(self, json_info):
+        if not isinstance(json_info, list):
+            print(f"获取的数据不是列表类型，请检查数据类型")
+            return
+        
         for move in json_info:
             move_data = {
                 'ID': move.get('id'),
@@ -50,8 +61,6 @@ class spa1:
             }
             self.all_movies.append(move_data)
             print(f"已收集电影数据:{len(self.all_movies)}")
-            # print(f"已提取电影名字:{move_data['NAME']}")
-        # print(self.all_movies) 
         
 
     # 定义保存函数save_info_cvs
@@ -59,6 +68,8 @@ class spa1:
         if not self.all_movies:
             print("没有电影数据")
             return
+        else:
+            print('列表中存在数据，可以开始保存了！！！')
 
         # 获取当前时间
         times = datetime.now().strftime('%Y%m%d_%H%M%S')
@@ -66,21 +77,22 @@ class spa1:
         # filename = f'data_{times}.csv'  # 采用时间戳命名需把次注释打开
                                         # 采用固定文件命名,在类实例位置添加self.filename = 'movies.csv'
         # 定义表头
-        headers = ['ID','NAME','ALIAS','COVER','CATEGORIES','PUBLISHED_AT','MINUTE','SCORE','REGIONS']
-        # 写入csv文件
-        with open(self.filename,'w',encoding='utf-8',newline='') as f:
-            # 创建csv写入对象
-            writer = csv.DictWriter(f,fieldnames=headers)
-            # 写入表头,且只在第一次写入表头
-            if f.tell() == 0:
-                writer.writeheader()
-            # 写入数据
-            for move_data in self.all_movies:
-                writer.writerow(move_data)
-                print(f"已保存电影:{move_data['NAME']}")
+        try:
+            headers = ['ID','NAME','ALIAS','COVER','CATEGORIES','PUBLISHED_AT','MINUTE','SCORE','REGIONS']
+            # 写入csv文件
+            with open(self.filename,'w',encoding='utf-8',newline='') as f:
+                # 创建csv写入对象
+                writer = csv.DictWriter(f,fieldnames=headers)
+                # 写入表头,且只在第一次写入表头
+                if f.tell() == 0:
+                    writer.writeheader()
+                # 写入数据
+                for move_data in self.all_movies:
+                    writer.writerow(move_data)
+                    print(f"已保存电影:{move_data['NAME']}")
+        except Exception as e:
+            print(f"保存文件时错误，错误信息:{e}")
 
-        # 清空列表，准备下一次保存
-        # self.all_movies.clear()
 
         # 注:如果采用时间戳的命名方式保存数据,则会生成N个文件,如果采用固定csv文件名,则只会生成一个文件保存.
 
