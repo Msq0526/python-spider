@@ -24,6 +24,10 @@ class spa1:
             try:
                 json_info = requests.get(url,headers=self.headers).json()
                 # print(json_info)
+                # 判断页面是否为空
+                if not json_info['results']:
+                    print(f"第{page}页已经没有数据，停止爬取")
+                    break
                 self.moves_data(json_info['results'])
             except Exception as e:
                 print(f"请求失败:{url}, 错误信息:{e}")
@@ -48,12 +52,10 @@ class spa1:
             print(f"已收集电影数据:{len(self.all_movies)}")
             # print(f"已提取电影名字:{move_data['NAME']}")
         # print(self.all_movies) 
-
-        self.save_info_cvs(move_data)   
         
 
     # 定义保存函数save_info_cvs
-    def save_info_cvs(self, move_data):
+    def save_info_cvs(self):
         if not self.all_movies:
             print("没有电影数据")
             return
